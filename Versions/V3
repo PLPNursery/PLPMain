@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Main Browser Screen - Knoppen Mode</title>
+<style>
+  * { box-sizing: border-box; transition: all 0.3s ease; }
+  body { font-family:"Poppins",sans-serif; background: linear-gradient(135deg,#0f2027,#203a43,#2c5364); color:white; margin:0; padding:0; display:flex; flex-direction:column; align-items:center; min-height:100vh;}
+  h1 { margin-top:20px; font-size:2rem; text-shadow:0 0 10px rgba(255,255,255,0.3);}
+  
+  /* Zoekbalk */
+  .search-container { display:flex; align-items:center; background:rgba(255,255,255,0.15); border-radius:30px; padding:10px 20px; margin-top:20px; width:90%; max-width:600px; }
+  .search-container input { flex:1; padding:10px; font-size:1rem; background:transparent; border:none; outline:none; color:white;}
+  .search-container button { background:#00bcd4; border:none; border-radius:25px; color:white; padding:10px 20px; cursor:pointer; font-weight:bold;}
+  .search-toggle { margin-left:15px; cursor:pointer; display:flex; align-items:center; gap:8px; background:rgba(255,255,255,0.1); padding:8px 15px; border-radius:20px; user-select:none;}
+  .search-toggle input { cursor:pointer;}
+  
+  /* Snelkoppelingen */
+  .shortcuts { display:flex; flex-wrap:wrap; justify-content:center; margin-top:30px; gap:20px;}
+  .shortcut { background:rgba(255,255,255,0.15); padding:15px; border-radius:15px; text-align:center; width:120px; transition:transform 0.2s ease, background 0.3s;}
+  .shortcut:hover { transform:translateY(-5px); background:rgba(255,255,255,0.25);}
+  .shortcut button { margin-top:10px; background:crimson; border:none; color:white; padding:5px 10px; border-radius:10px; cursor:pointer;}
+  
+  /* Add-link paneel */
+  .add-link-panel { position:fixed; bottom:0; left:0; width:100%; background:rgba(0,0,0,0.85); transform:translateY(100%); transition:transform 0.5s ease; padding:20px; display:flex; flex-direction:column; align-items:center; }
+  .add-link-panel.show { transform:translateY(0);}
+  .add-link-panel input[type="text"], .add-link-panel input[type="url"] { border:none; border-radius:10px; padding:5px 10px; margin:5px; width:80%;}
+  .toggle-panel-btn { margin-top:15px; background:#00bcd4; border:none; border-radius:25px; color:white; padding:10px 20px; cursor:pointer; font-weight:bold;}
+</style>
+</head>
+<body>
+<h1>🌐 Joey's Browser Main Screen</h1>
+
+<div class="search-container">
+  <input id="searchInput" type="text" placeholder="Typ een zoekterm of URL...">
+  <button onclick="performSearch()">Zoek</button>
+  <label class="search-toggle">
+    <input type="checkbox" id="modeSwitch" checked>
+    <span id="modeLabel">🔍 Google</span>
+  </label>
+</div>
+
+<div class="shortcuts" id="shortcuts">
+  <!-- Permanente knoppen -->
+  <div class="shortcut" data-permanent="true">
+    <h3>📧 Gmail</h3>
+    <a href="https://mail.google.com/" target="_blank">Openen</a>
+  </div>
+  <div class="shortcut" data-permanent="true">
+    <h3>☁️ OneDrive</h3>
+    <a href="https://onedrive.live.com/" target="_blank">Openen</a>
+  </div>
+  <div class="shortcut" data-permanent="true">
+    <h3>🏪 Kassa</h3>
+    <a href="https://joey226611.github.io/rfepo" target="_blank">Openen</a>
+  </div>
+</div>
+
+<button class="toggle-panel-btn" onclick="togglePanel()">➕ Voeg een snelkoppeling toe</button>
+
+<div class="add-link-panel" id="addLinkPanel">
+  <input type="text" id="linkName" placeholder="Naam">
+  <input type="url" id="linkURL" placeholder="https://voorbeeld.nl">
+  <button onclick="addShortcut()">Toevoegen</button>
+</div>
+
+<script>
+console.log("Debug mode actief");
+
+const searchInput=document.getElementById("searchInput");
+const modeSwitch=document.getElementById("modeSwitch");
+const modeLabel=document.getElementById("modeLabel");
+const shortcutsContainer=document.getElementById("shortcuts");
+const addLinkPanel=document.getElementById("addLinkPanel");
+
+modeSwitch.addEventListener("change",()=>{
+  const isGoogle=modeSwitch.checked;
+  modeLabel.textContent=isGoogle?"🔍 Google":"🌐 URL";
+  console.log("Zoekmodus:",isGoogle?"Google":"URL");
+});
+
+function performSearch(){
+  const query=searchInput.value.trim();
+  if(!query) return alert("Typ iets in de zoekbalk!");
+  const isGoogle=modeSwitch.checked;
+  let url;
+  if(isGoogle){
+    url=`https://www.google.com/search?q=${encodeURIComponent(query)}`;
+  }else{
+    if(query.startsWith("http://")||query.startsWith("https://")) url=query;
+    else url="https://"+query;
+  }
+  console.log("Openen:",url);
+  window.open(url,"_blank");
+}
+
+function loadShortcuts(){
+  const data=JSON.parse(localStorage.getItem("customShortcuts")||"[]");
+  data.forEach(link=>createShortcut(link.name,link.url,false));
+}
+
+function addShortcut(){
+  const name=document.getElementById("linkName").value.trim();
+  const url=document.getElementById("linkURL").value.trim();
+  if(!name||!url)return alert("Naam en URL invullen!");
+  createShortcut(name,url,true);
+  saveShortcuts();
+}
+
+function createShortcut(name,url,isCustom){
+  const div=document.createElement("div");
+  div.className="shortcut";
+  div.innerHTML=`<h3>${name}</h3><a href="${url}" target="_blank">Openen</a>${isCustom?'<button onclick="removeShortcut(this)">Verwijder</button>':''}`;
+  shortcutsContainer.appendChild(div);
+}
+
+function removeShortcut(btn){
+  btn.parentElement.remove();
+  saveShortcuts();
+}
+
+function saveShortcuts(){
+  const custom=[];
+  document.querySelectorAll(".shortcut").forEach(el=>{
+    if(!el.dataset.permanent){
+      const name=el.querySelector("h3").textContent;
+      const url=el.querySelector("a").href;
+      custom.push({name,url});
+    }
+  });
+  localStorage.setItem("customShortcuts",JSON.stringify(custom));
+  console.log("Snelkoppelingen opgeslagen:",custom);
+}
+
+function togglePanel(){
+  addLinkPanel.classList.toggle("show");
+}
+
+loadShortcuts();
+</script>
+</body>
+</html>
